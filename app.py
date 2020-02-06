@@ -10,12 +10,57 @@ quake_list = ["dominating", "godlike", "holyshit", "humiliation", "killing spree
 command_dict = \
     {
         "aoe2": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42"],
-        "quake": ["dominating", "godlike", "holyshit", "humiliation", "killing spree", "ludicrouskill", "monsterkill", "rampage", "teamkiller", "ultrakill", "unstoppable", "wickedsick"],
+        "quake": ["dominating", "godlike", "holyshit", "humiliation", "killingspree", "ludicrouskill", "monsterkill", "rampage", "teamkiller", "ultrakill", "unstoppable", "wickedsick"],
         "misc": ["how", "disgusting", "penis", "foodplease", "dialup", "aeugh", "brrringha", "idiotsandwich", "bruh", "supersuit", "quickscope", "petruh"],
-        "help": ["help", "disconnect"]
+        "help": ["help", "disconnect", "aoe2help", "quakehelp", "mischelp"]
     }
 
 command_queue = []
+
+aoe2_taunts_dict = {
+    "1": "Yes.",
+    "2": "No.",
+    "3": "Food please.",
+    "4": "Wood please.",
+    "5": "Gold please.",
+    "6": "Stone please.",
+    "7": "Ahh!",
+    "8": "All hail, king of the losers!",
+    "9": "Ooh!",
+    "10": "I'll beat you back to Age of Empires.",
+    "11": "(Herb laugh)",
+    "12": "Ah! being rushed.",
+    "13": "Sure, blame it on your ISP.",
+    "14": "Start the game already!",
+    "15": "Don't point that thing at me!",
+    "16": "Enemy sighted!",
+    "17": "It is good to be the king.",
+    "18": "Monk! I need a monk!",
+    "19": "Long time, no siege.",
+    "20": "My granny could scrap better than that.",
+    "21": "Nice town, I'll take it.",
+    "22": "Quit touching me!",
+    "23": "Raiding party!",
+    "24": "Dadgum.",
+    "25": "Eh, smite me.",
+    "26": "The wonder, the wonder, the... no!",
+    "27": "You played two hours to die like this?",
+    "28": "Yeah, well, you should see the other guy.",
+    "29": "Roggan.",
+    "30": "Wololo.",
+    "31": "Attack an enemy now.",
+    "32": "Cease creating extra villagers.",
+    "33": "Create extra villagers.",
+    "34": "Build a navy.",
+    "35": "Stop building a navy.",
+    "36": "Wait for my signal to attack.",
+    "37": "Build a wonder.",
+    "38": "Give me your extra resources.",
+    "39": "(Ally sound)",
+    "40": "(Enemy sound)",
+    "41": "(Neutral sound)",
+    "42": "What age are you in?"
+}
 
 
 class Command:
@@ -91,9 +136,12 @@ async def on_message(message):
             elif command == "help":
                 if message.content == "disconnect":
                     await vc.disconnect()
-                    await message.delete(delay=5)
                 if message.content == "help":
                     await help(text_channel)
+                else:
+                    await dm(user, message.content)
+
+                await message.delete(delay=5)
                 print(f"Help command requested by {user}")
 
 
@@ -119,15 +167,35 @@ async def play_voice_line(vc):
 
 
 async def help(text_channel):
-    embed = discord.Embed(title="Mr Roboto Commands", description="---", color=0x0dffe7)
+    embed = discord.Embed(title="Mr Roboto Commands", description="⠀", color=0x0dffe7)
     embed.add_field(name="Age of Empires 2 Taunts", value="Command: aoe2help", inline=False)
     embed.add_field(name="Quake", value="Command: quakehelp", inline=False)
     embed.add_field(name="Misc", value="Command: mischelp", inline=False)
     await text_channel.send(embed=embed)
 
 
-async def dm(user):
-    pass
+async def dm(user, command):
+    if command == "aoe2help":
+        embed = discord.Embed(title="Age of Empires 2 Commands", description="⠀", color=0x0dffe7)
+        count = 1
+        for i in command_dict["aoe2"]:
+            if count == 26:
+                await user.send(embed=embed)
+                embed = discord.Embed(title="Age of Empires 2 Commands cont...", description="⠀", color=0x0dffe7)
+            embed.add_field(name=i, value=aoe2_taunts_dict[i], inline=False)
+            count += 1
+        await user.send(embed=embed)
+    if command == "quakehelp":
+        embed = discord.Embed(title="Quake Commands", description="⠀", color=0x0dffe7)
+        for i in command_dict["quake"]:
+            embed.add_field(name=i, value="⠀", inline=False)
+        await user.send(embed=embed)
+    if command == "mischelp":
+        embed = discord.Embed(title="Misc Commands", description="⠀", color=0x0dffe7)
+        for i in command_dict["misc"]:
+            embed.add_field(name=i, value="⠀", inline=False)
+        await user.send(embed=embed)
+
 
 if __name__ == "__main__":
     token = os.environ["discord_token"]
