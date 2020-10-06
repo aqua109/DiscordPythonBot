@@ -93,7 +93,7 @@ async def tk_recorder(msg, text_channel):
         killer = msg.split("@")[1].strip()
         conn = sqlite3.connect("tk.db")
         c = conn.cursor()
-        c.execute("SELECT killer, COUNT(killer) FROM tk_record WHERE killer == $", (killer,))
+        c.execute("SELECT killer, COUNT(killer) FROM tk_record WHERE killer == ?", (killer,))
         result = c.fetchall()
         c.close()
 
@@ -110,7 +110,7 @@ async def tk_recorder(msg, text_channel):
         victim = msg.split("@")[2].strip()
         conn = sqlite3.connect("tk.db")
         c = conn.cursor()
-        c.execute("SELECT killer, COUNT(killer) FROM tk_record WHERE killer == $ AND victim == $", (killer, victim))
+        c.execute("SELECT killer, COUNT(killer) FROM tk_record WHERE killer == ? AND victim == ?", (killer, victim))
         result = c.fetchall()
         c.close()
 
