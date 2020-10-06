@@ -60,7 +60,7 @@ def clean_table_name(table):
 
 async def tk_recorder(msg, text_channel):
     # Add a new tk record
-    if msg[:2] == "tk ":
+    if msg[:3] == "tk ":
         conn = sqlite3.connect("tk.db")
         c = conn.cursor()
         split = msg.split("@")
