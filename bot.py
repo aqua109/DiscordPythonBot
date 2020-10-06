@@ -144,17 +144,20 @@ async def on_message(message):
         else:
             vc = client.voice_clients[0]
         if vc:
+            print(f"message content: {message.content}")
             if command == "aoe2":
                 print(f"AoE2 command \"{message.content}\" requested by {user}")
                 cmd = Command(voice_channel, text_channel, message, f"AoE2\\{message.content}")
                 command_queue.append(cmd)
                 await play_voice_line(vc)
+
             elif command == "quake":
                 print(f"Quake command \"{message.content}\" requested by {user}")
                 cmd = Command(voice_channel, text_channel, message, f"Quake\\{message.content}")
                 command_queue.append(cmd)
                 await play_voice_line(vc)
-            elif command == "misc" and "tk" not in message.content:
+
+            elif command == "misc":
                 print(f"Misc command \"{message.content}\" requested by {user}")
                 if message.content == "how":
                     conn = sqlite3.connect("how.db")
@@ -180,6 +183,7 @@ async def on_message(message):
                 cmd = Command(voice_channel, text_channel, message, f"Misc\\{message.content}")
                 command_queue.append(cmd)
                 await play_voice_line(vc)
+
             elif command == "help":
                 if message.content == "disconnect":
                     await vc.disconnect()
@@ -190,6 +194,7 @@ async def on_message(message):
 
                 await message.delete(delay=5)
                 print(f"Help command requested by {user}")
+
             elif "tk" in message.content:
                 print(f"{message.content} requested by {user}")
                 tk_recorder(message.content, text_channel)
