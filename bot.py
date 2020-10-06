@@ -197,7 +197,7 @@ async def on_message(message):
 
             elif "tk" in message.content:
                 print(f"{message.content} requested by {user}")
-                tk_recorder(message.content, text_channel)
+                await tk_recorder(message.content, text_channel)
 
 
 async def connect(voice_channel, text_channel, message):
