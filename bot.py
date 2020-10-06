@@ -58,7 +58,7 @@ def clean_table_name(table):
     return "".join(c for c in table if c.isalnum())
 
 
-def tk_recorder(msg, text_channel):
+async def tk_recorder(msg, text_channel):
     # Add a new tk record
     if msg[:2] == "tk ":
         conn = sqlite3.connect("tk.db")
