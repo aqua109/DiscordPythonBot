@@ -156,7 +156,7 @@ async def on_message(message):
                 await play_voice_line(vc)
             elif command == "misc":
                 print(f"Misc command \"{message.content}\" requested by {user}")
-                if message.content[:1] == "tk":
+                if message.content[:2] == "tk":
                     tk_recorder(message.content, text_channel)
                 else:
                     if message.content == "how":
