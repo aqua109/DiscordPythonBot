@@ -154,35 +154,32 @@ async def on_message(message):
                 cmd = Command(voice_channel, text_channel, message, f"Quake\\{message.content}")
                 command_queue.append(cmd)
                 await play_voice_line(vc)
-            elif command == "misc":
+            elif command == "misc" and "tk" not in message.content:
                 print(f"Misc command \"{message.content}\" requested by {user}")
-                if message.content[:2] == "tk":
-                    tk_recorder(message.content, text_channel)
-                else:
-                    if message.content == "how":
-                        conn = sqlite3.connect("how.db")
-                        c = conn.cursor()
-                        c.execute("SELECT count FROM how_count WHERE user is ?", (str(user),))
-                        result = c.fetchall()
-                        if result:
-                            count = result[0][0]
-                            count += 1
-                            print(f"{str(user)} has asked how {count} times")
-                            msg = await text_channel.send(f"{str(user)} has asked how {count} times")
-                            await msg.delete(delay=5)
-                            c.execute("UPDATE how_count SET count = ? WHERE user = ?", (count, str(user)))
-                            conn.commit()
-                        else:
-                            count = 1
-                            print(f"{str(user)} has asked how {count} times")
-                            msg = await text_channel.send(f"{str(user)} has asked how {count} times")
-                            await msg.delete(delay=5)
-                            c.execute("INSERT INTO how_count (user, count) VALUES (?, ?)", (str(user), count))
-                            conn.commit()
-                        c.close()
-                    cmd = Command(voice_channel, text_channel, message, f"Misc\\{message.content}")
-                    command_queue.append(cmd)
-                    await play_voice_line(vc)
+                if message.content == "how":
+                    conn = sqlite3.connect("how.db")
+                    c = conn.cursor()
+                    c.execute("SELECT count FROM how_count WHERE user is ?", (str(user),))
+                    result = c.fetchall()
+                    if result:
+                        count = result[0][0]
+                        count += 1
+                        print(f"{str(user)} has asked how {count} times")
+                        msg = await text_channel.send(f"{str(user)} has asked how {count} times")
+                        await msg.delete(delay=5)
+                        c.execute("UPDATE how_count SET count = ? WHERE user = ?", (count, str(user)))
+                        conn.commit()
+                    else:
+                        count = 1
+                        print(f"{str(user)} has asked how {count} times")
+                        msg = await text_channel.send(f"{str(user)} has asked how {count} times")
+                        await msg.delete(delay=5)
+                        c.execute("INSERT INTO how_count (user, count) VALUES (?, ?)", (str(user), count))
+                        conn.commit()
+                    c.close()
+                cmd = Command(voice_channel, text_channel, message, f"Misc\\{message.content}")
+                command_queue.append(cmd)
+                await play_voice_line(vc)
             elif command == "help":
                 if message.content == "disconnect":
                     await vc.disconnect()
@@ -193,6 +190,9 @@ async def on_message(message):
 
                 await message.delete(delay=5)
                 print(f"Help command requested by {user}")
+            elif tk in message.content:
+                print(f"{message.content} requested by {user}")
+                tk_recorder(message.content, text_channel)
 
 
 async def connect(voice_channel, text_channel, message):
