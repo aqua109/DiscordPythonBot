@@ -2,6 +2,7 @@ import asyncio
 import discord
 import os
 import sqlite3
+import re
 from discord.ext import commands
 from datetime import date
 
@@ -58,6 +59,12 @@ def clean_table_name(table):
     return "".join(c for c in table if c.isalnum())
 
 
+async def parse_user(unparsed_user_id):
+    regex_search = re.search(r"[0-9]+", unparsed_user_id)
+    user_id = regex_search.group()
+    return client.get_user(int(user_id))
+
+
 async def tk_recorder(msg, text_channel):
     # Add a new tk record
     if msg[:3] == "tk ":
@@ -69,8 +76,8 @@ async def tk_recorder(msg, text_channel):
             victim = split[2].strip()
         except IndexError:
             return
-        date = date.today().strftime("%d/%m/%Y")
-        c.execute("INSERT INTO tk_record (killer, victim, date) VALUES (?, ?, ?)", (killer, victim, date))
+        now = date.today().strftime("%d/%m/%Y")
+        c.execute("INSERT INTO tk_record (killer, victim, date) VALUES (?, ?, ?)", (killer, victim, now))
         conn.commit()
         c.close()
 
@@ -90,36 +97,39 @@ async def tk_recorder(msg, text_channel):
 
     # un-targeted tk query
     elif "tk-record" in msg and len(msg.split("@")) == 2:
-        killer = msg.split("@")[1].strip()
+        users = re.findall("<@![0-9]+>", msg)
+        killer = await parse_user(users[0])
         conn = sqlite3.connect("tk.db")
         c = conn.cursor()
-        c.execute("SELECT killer, COUNT(killer) FROM tk_record WHERE killer == ?", (killer,))
+        c.execute("SELECT killer, COUNT(killer) FROM tk_record WHERE killer == ?", (killer.name,))
         result = c.fetchall()
         c.close()
-
+        print(killer)
         if result[0][1] == 0:
-            await text_channel.send(f"{killer} has never teamkilled \n\nprobably")
+            await text_channel.send(f"{killer.name} has never teamkilled \n\nprobably")
         elif result[0][1] == 1:
-            await text_channel.send(f"{killer} has teamkilled 1 time")
+            await text_channel.send(f"{killer.name} has teamkilled 1 time")
         else:
-            await text_channel.send(f"{killer} has teamkilled {result[0][1]} times")
+            await text_channel.send(f"{killer.name} has teamkilled {result[0][1]} times")
 
     # targeted tk query
     elif "tk-record" in msg and len(msg.split("@")) == 3:
-        killer = msg.split("@")[1].strip()
-        victim = msg.split("@")[2].strip()
+        users = re.findall("<@![0-9]+>", msg)
+        killer = await parse_user(users[0])
+        victim = await parse_user(users[1])
+        print(killer)
         conn = sqlite3.connect("tk.db")
         c = conn.cursor()
-        c.execute("SELECT killer, COUNT(killer) FROM tk_record WHERE killer == ? AND victim == ?", (killer, victim))
+        c.execute("SELECT killer, COUNT(killer) FROM tk_record WHERE killer == ? AND victim == ?", (killer.name, victim.name))
         result = c.fetchall()
         c.close()
-
+        print(killer)
         if result[0][1] == 0:
-            await text_channel.send(f"{killer} has never teamkilled {victim} \n\nprobably")
+            await text_channel.send(f"{killer.name} has never teamkilled {victim.name} \n\nprobably")
         elif result[0][1] == 1:
-            await text_channel.send(f"{killer} has teamkilled {victim} 1 time")
+            await text_channel.send(f"{killer.name} has teamkilled {victim.name} 1 time")
         else:
-            await text_channel.send(f"{killer} has teamkilled {victim} {result[0][1]} times")
+            await text_channel.send(f"{killer.name} has teamkilled {victim.name} {result[0][1]} times")
 
 
 @client.event
@@ -137,6 +147,8 @@ async def on_message(message):
     voice_channel = user.voice
 
     command = check_message(message.content)
+
+    print(message.author.id)
 
     if command is not None or "tk" in message.content:
         if not client.voice_clients:
