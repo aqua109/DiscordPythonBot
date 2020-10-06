@@ -190,7 +190,7 @@ async def on_message(message):
 
                 await message.delete(delay=5)
                 print(f"Help command requested by {user}")
-            elif tk in message.content:
+            elif "tk" in message.content:
                 print(f"{message.content} requested by {user}")
                 tk_recorder(message.content, text_channel)
 
