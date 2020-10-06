@@ -144,7 +144,6 @@ async def on_message(message):
         else:
             vc = client.voice_clients[0]
         if vc:
-            print(f"message content: {message.content}")
             if command == "aoe2":
                 print(f"AoE2 command \"{message.content}\" requested by {user}")
                 cmd = Command(voice_channel, text_channel, message, f"AoE2\\{message.content}")
