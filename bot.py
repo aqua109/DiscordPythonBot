@@ -3,6 +3,7 @@ import discord
 import os
 import sqlite3
 from discord.ext import commands
+from datetime import date
 
 client = discord.Client()
 
@@ -57,6 +58,70 @@ def clean_table_name(table):
     return "".join(c for c in table if c.isalnum())
 
 
+def tk_recorder(msg, text_channel):
+    # Add a new tk record
+    if msg[:2] == "tk ":
+        conn = sqlite3.connect("tk.db")
+        c = conn.cursor()
+        split = msg.split("@")
+        try:
+            killer = split[1].strip()
+            victim = split[2].strip()
+        except IndexError:
+            return
+        date = date.today().strftime("%d/%m/%Y")
+        c.execute("INSERT INTO tk_record (killer, victim, date) VALUES (?, ?, ?)", (killer, victim, date))
+        conn.commit()
+        c.close()
+
+    # tk leaderboard
+    elif msg == "tk-leaderboard":
+        conn = sqlite3.connect("tk.db")
+        c = conn.cursor()
+        c.execute("SELECT killer, COUNT(killer) FROM tk_record GROUP BY killer")
+        result = c.fetchall()
+        c.close()
+
+        embed=discord.Embed(title="TK Leaderboard", description="💀💀💀", color=0x3c6382)
+        for str in result:
+            embed.add_field(name=str[0], value=str[1], inline=False)
+
+        await text_channel.send(embed=embed)
+
+    # un-targeted tk query
+    elif "tk-record" in msg and len(msg.split("@")) == 2:
+        killer = msg.split("@")[1].strip()
+        conn = sqlite3.connect("tk.db")
+        c = conn.cursor()
+        c.execute("SELECT killer, COUNT(killer) FROM tk_record WHERE killer == $", (killer,))
+        result = c.fetchall()
+        c.close()
+
+        if result[0][1] == 0:
+            await text_channel.send(f"{killer} has never teamkilled \n\nprobably")
+        elif result[0][1] == 1:
+            await text_channel.send(f"{killer} has teamkilled 1 time")
+        else:
+            await text_channel.send(f"{killer} has teamkilled {result[0][1]} times")
+
+    # targeted tk query
+    elif "tk-record" in msg and len(msg.split("@")) == 3:
+        killer = msg.split("@")[1].strip()
+        victim = msg.split("@")[2].strip()
+        conn = sqlite3.connect("tk.db")
+        c = conn.cursor()
+        c.execute("SELECT killer, COUNT(killer) FROM tk_record WHERE killer == $ AND victim == $", (killer, victim))
+        result = c.fetchall()
+        c.close()
+
+        if result[0][1] == 0:
+            await text_channel.send(f"{killer} has never teamkilled {victim} \n\nprobably")
+        elif result[0][1] == 1:
+            await text_channel.send(f"{killer} has teamkilled {victim} 1 time")
+        else:
+            await text_channel.send(f"{killer} has teamkilled {victim} {result[0][1]} times")
+
+
 @client.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
@@ -91,30 +156,33 @@ async def on_message(message):
                 await play_voice_line(vc)
             elif command == "misc":
                 print(f"Misc command \"{message.content}\" requested by {user}")
-                if message.content == "how":
-                    conn = sqlite3.connect("how.db")
-                    c = conn.cursor()
-                    c.execute("SELECT count FROM how_count WHERE user is ?", (str(user),))
-                    result = c.fetchall()
-                    if result:
-                        count = result[0][0]
-                        count += 1
-                        print(f"{str(user)} has asked how {count} times")
-                        msg = await text_channel.send(f"{str(user)} has asked how {count} times")
-                        await msg.delete(delay=5)
-                        c.execute("UPDATE how_count SET count = ? WHERE user = ?", (count, str(user)))
-                        conn.commit()
-                    else:
-                        count = 1
-                        print(f"{str(user)} has asked how {count} times")
-                        msg = await text_channel.send(f"{str(user)} has asked how {count} times")
-                        await msg.delete(delay=5)
-                        c.execute("INSERT INTO how_count (user, count) VALUES (?, ?)", (str(user), count))
-                        conn.commit()
-                    c.close()
-                cmd = Command(voice_channel, text_channel, message, f"Misc\\{message.content}")
-                command_queue.append(cmd)
-                await play_voice_line(vc)
+                if message.content[:1] == "tk":
+                    tk_recorder(message.content, text_channel)
+                else:
+                    if message.content == "how":
+                        conn = sqlite3.connect("how.db")
+                        c = conn.cursor()
+                        c.execute("SELECT count FROM how_count WHERE user is ?", (str(user),))
+                        result = c.fetchall()
+                        if result:
+                            count = result[0][0]
+                            count += 1
+                            print(f"{str(user)} has asked how {count} times")
+                            msg = await text_channel.send(f"{str(user)} has asked how {count} times")
+                            await msg.delete(delay=5)
+                            c.execute("UPDATE how_count SET count = ? WHERE user = ?", (count, str(user)))
+                            conn.commit()
+                        else:
+                            count = 1
+                            print(f"{str(user)} has asked how {count} times")
+                            msg = await text_channel.send(f"{str(user)} has asked how {count} times")
+                            await msg.delete(delay=5)
+                            c.execute("INSERT INTO how_count (user, count) VALUES (?, ?)", (str(user), count))
+                            conn.commit()
+                        c.close()
+                    cmd = Command(voice_channel, text_channel, message, f"Misc\\{message.content}")
+                    command_queue.append(cmd)
+                    await play_voice_line(vc)
             elif command == "help":
                 if message.content == "disconnect":
                     await vc.disconnect()
