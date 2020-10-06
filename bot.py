@@ -138,7 +138,7 @@ async def on_message(message):
 
     command = check_message(message.content)
 
-    if command is not None:
+    if command is not None or "tk" in message.content:
         if not client.voice_clients:
             vc = await connect(voice_channel, text_channel, message)
         else:
