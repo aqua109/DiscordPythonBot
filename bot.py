@@ -70,14 +70,17 @@ async def tk_recorder(msg, text_channel):
     if msg[:3] == "tk ":
         conn = sqlite3.connect("tk.db")
         c = conn.cursor()
-        split = msg.split("@")
+        users = re.findall("<@![0-9]+>", msg)
         try:
-            killer = split[1].strip()
-            victim = split[2].strip()
+            killer = await parse_user(users[0])
+            victim = await parse_user(users[1])
         except IndexError:
             return
+
         now = date.today().strftime("%d/%m/%Y")
-        c.execute("INSERT INTO tk_record (killer, victim, date) VALUES (?, ?, ?)", (killer, victim, now))
+        print(f"Adding record of {killer.name} killing {victim.name} at {now}")
+
+        c.execute("INSERT INTO tk_record (killer, victim, date) VALUES (?, ?, ?)", (killer.name, victim.name, now))
         conn.commit()
         c.close()
 
@@ -85,9 +88,11 @@ async def tk_recorder(msg, text_channel):
     elif msg == "tk-leaderboard":
         conn = sqlite3.connect("tk.db")
         c = conn.cursor()
-        c.execute("SELECT killer, COUNT(killer) FROM tk_record GROUP BY killer")
+        c.execute("SELECT killer, COUNT(killer) FROM tk_record GROUP BY killer ORDER BY count(killer) DESC")
         result = c.fetchall()
         c.close()
+
+        print(f"Showing TK Leaderboard")
 
         embed=discord.Embed(title="TK Leaderboard", description="💀💀💀", color=0x3c6382)
         for str in result:
@@ -104,7 +109,9 @@ async def tk_recorder(msg, text_channel):
         c.execute("SELECT killer, COUNT(killer) FROM tk_record WHERE killer == ?", (killer.name,))
         result = c.fetchall()
         c.close()
-        print(killer)
+
+        print(f"Showing record of {killer.name}'s teamkills")
+
         if result[0][1] == 0:
             await text_channel.send(f"{killer.name} has never teamkilled \n\nprobably")
         elif result[0][1] == 1:
@@ -123,7 +130,9 @@ async def tk_recorder(msg, text_channel):
         c.execute("SELECT killer, COUNT(killer) FROM tk_record WHERE killer == ? AND victim == ?", (killer.name, victim.name))
         result = c.fetchall()
         c.close()
-        print(killer)
+
+        print(f"Showing record of {killer.name} killing {victim.name}")
+
         if result[0][1] == 0:
             await text_channel.send(f"{killer.name} has never teamkilled {victim.name} \n\nprobably")
         elif result[0][1] == 1:
@@ -148,67 +157,66 @@ async def on_message(message):
 
     command = check_message(message.content)
 
-    print(message.author.id)
-
     if command is not None or "tk" in message.content:
-        if not client.voice_clients:
-            vc = await connect(voice_channel, text_channel, message)
+        if "tk" in message.content:
+            await tk_recorder(message.content, text_channel)
+            await message.delete(delay=5)
         else:
-            vc = client.voice_clients[0]
-        if vc:
-            if command == "aoe2":
-                print(f"AoE2 command \"{message.content}\" requested by {user}")
-                cmd = Command(voice_channel, text_channel, message, f"AoE2\\{message.content}")
-                command_queue.append(cmd)
-                await play_voice_line(vc)
+            if not client.voice_clients:
+                vc = await connect(voice_channel, text_channel, message)
+            else:
+                vc = client.voice_clients[0]
+            if vc:
+                if command == "aoe2":
+                    print(f"AoE2 command \"{message.content}\" requested by {user}")
+                    cmd = Command(voice_channel, text_channel, message, f"AoE2\\{message.content}")
+                    command_queue.append(cmd)
+                    await play_voice_line(vc)
 
-            elif command == "quake":
-                print(f"Quake command \"{message.content}\" requested by {user}")
-                cmd = Command(voice_channel, text_channel, message, f"Quake\\{message.content}")
-                command_queue.append(cmd)
-                await play_voice_line(vc)
+                elif command == "quake":
+                    print(f"Quake command \"{message.content}\" requested by {user}")
+                    cmd = Command(voice_channel, text_channel, message, f"Quake\\{message.content}")
+                    command_queue.append(cmd)
+                    await play_voice_line(vc)
 
-            elif command == "misc":
-                print(f"Misc command \"{message.content}\" requested by {user}")
-                if message.content == "how":
-                    conn = sqlite3.connect("how.db")
-                    c = conn.cursor()
-                    c.execute("SELECT count FROM how_count WHERE user is ?", (str(user),))
-                    result = c.fetchall()
-                    if result:
-                        count = result[0][0]
-                        count += 1
-                        print(f"{str(user)} has asked how {count} times")
-                        msg = await text_channel.send(f"{str(user)} has asked how {count} times")
-                        await msg.delete(delay=5)
-                        c.execute("UPDATE how_count SET count = ? WHERE user = ?", (count, str(user)))
-                        conn.commit()
+                elif command == "misc":
+                    print(f"Misc command \"{message.content}\" requested by {user}")
+                    if message.content == "how":
+                        conn = sqlite3.connect("how.db")
+                        c = conn.cursor()
+                        c.execute("SELECT count FROM how_count WHERE user is ?", (str(user),))
+                        result = c.fetchall()
+                        if result:
+                            count = result[0][0]
+                            count += 1
+                            print(f"{str(user)} has asked how {count} times")
+                            msg = await text_channel.send(f"{str(user)} has asked how {count} times")
+                            await msg.delete(delay=5)
+                            c.execute("UPDATE how_count SET count = ? WHERE user = ?", (count, str(user)))
+                            conn.commit()
+                        else:
+                            count = 1
+                            print(f"{str(user)} has asked how {count} times")
+                            msg = await text_channel.send(f"{str(user)} has asked how {count} times")
+                            await msg.delete(delay=5)
+                            c.execute("INSERT INTO how_count (user, count) VALUES (?, ?)", (str(user), count))
+                            conn.commit()
+                        c.close()
+                    cmd = Command(voice_channel, text_channel, message, f"Misc\\{message.content}")
+                    command_queue.append(cmd)
+                    await play_voice_line(vc)
+
+                elif command == "help":
+                    if message.content == "disconnect":
+                        await vc.disconnect()
+                    elif message.content == "help":
+                        await help(text_channel)
                     else:
-                        count = 1
-                        print(f"{str(user)} has asked how {count} times")
-                        msg = await text_channel.send(f"{str(user)} has asked how {count} times")
-                        await msg.delete(delay=5)
-                        c.execute("INSERT INTO how_count (user, count) VALUES (?, ?)", (str(user), count))
-                        conn.commit()
-                    c.close()
-                cmd = Command(voice_channel, text_channel, message, f"Misc\\{message.content}")
-                command_queue.append(cmd)
-                await play_voice_line(vc)
+                        await dm(user, message.content)
 
-            elif command == "help":
-                if message.content == "disconnect":
-                    await vc.disconnect()
-                elif message.content == "help":
-                    await help(text_channel)
-                else:
-                    await dm(user, message.content)
+                    await message.delete(delay=5)
+                    print(f"Help command requested by {user}")
 
-                await message.delete(delay=5)
-                print(f"Help command requested by {user}")
-
-            elif "tk" in message.content:
-                print(f"{message.content} requested by {user}")
-                await tk_recorder(message.content, text_channel)
 
 
 async def connect(voice_channel, text_channel, message):
