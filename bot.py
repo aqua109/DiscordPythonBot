@@ -27,6 +27,7 @@ class Command:
         self.mp3_string = mp3_string
 
 
+# Update command_dict with values from sound_clips.db
 def refresh_command_dict():
     conn = sqlite3.connect("sound_clips.db")
     c = conn.cursor()
@@ -46,6 +47,7 @@ def check_message(msg):
     return None
 
 
+# Not currently in use, can be used to add new voice clips during runtime
 def create_new_command(category, command, flavour):
     conn = sqlite3.connect("sound_clips.db")
     c = conn.cursor()
@@ -59,17 +61,21 @@ def clean_table_name(table):
     return "".join(c for c in table if c.isalnum())
 
 
+# Convert user id (<@!74004712172560384>) to client.user
 async def parse_user(unparsed_user_id):
+    # Returns just the user id
     regex_search = re.search(r"[0-9]+", unparsed_user_id)
     user_id = regex_search.group()
     return client.get_user(int(user_id))
 
 
-async def tk_recorder(msg, text_channel):
+async def tk_recorder(msg, text_channel, user):
     # Add a new tk record
     if msg[:3] == "tk ":
         conn = sqlite3.connect("tk.db")
         c = conn.cursor()
+        # @aidanigbo is read as <@!74004712172560384>
+        # Find all users that match this pattern in the message
         users = re.findall("<@![0-9]+>", msg)
         try:
             killer = await parse_user(users[0])
@@ -78,7 +84,7 @@ async def tk_recorder(msg, text_channel):
             return
 
         now = date.today().strftime("%d/%m/%Y")
-        print(f"Adding record of {killer.name} killing {victim.name} at {now}")
+        print(f"Adding record of {killer.name} killing {victim.name} at {now} as requested by {user}")
 
         c.execute("INSERT INTO tk_record (killer, victim, date) VALUES (?, ?, ?)", (killer.name, victim.name, now))
         conn.commit()
@@ -92,7 +98,7 @@ async def tk_recorder(msg, text_channel):
         result = c.fetchall()
         c.close()
 
-        print(f"Showing TK Leaderboard")
+        print(f"Showing TK Leaderboard as requested by {user}")
 
         embed=discord.Embed(title="TK Leaderboard", description="💀💀💀", color=0x3c6382)
         for str in result:
@@ -102,6 +108,8 @@ async def tk_recorder(msg, text_channel):
 
     # un-targeted tk query
     elif "tk-record" in msg and len(msg.split("@")) == 2:
+        # @aidanigbo is read as <@!74004712172560384>
+        # Find all users that match this pattern in the message
         users = re.findall("<@![0-9]+>", msg)
         killer = await parse_user(users[0])
         conn = sqlite3.connect("tk.db")
@@ -110,17 +118,19 @@ async def tk_recorder(msg, text_channel):
         result = c.fetchall()
         c.close()
 
-        print(f"Showing record of {killer.name}'s teamkills")
+        print(f"Showing record of {killer.name}'s teamkills as requested by {user}")
 
         if result[0][1] == 0:
             await text_channel.send(f"{killer.name} has never teamkilled \n\nprobably")
         elif result[0][1] == 1:
-            await text_channel.send(f"{killer.name} has teamkilled 1 time")
+            await text_channel.send(f"{killer.name} has teamkilled once")
         else:
             await text_channel.send(f"{killer.name} has teamkilled {result[0][1]} times")
 
     # targeted tk query
     elif "tk-record" in msg and len(msg.split("@")) == 3:
+        # @aidanigbo is read as <@!74004712172560384>
+        # Find all users that match this pattern in the message
         users = re.findall("<@![0-9]+>", msg)
         killer = await parse_user(users[0])
         victim = await parse_user(users[1])
@@ -131,23 +141,24 @@ async def tk_recorder(msg, text_channel):
         result = c.fetchall()
         c.close()
 
-        print(f"Showing record of {killer.name} killing {victim.name}")
+        print(f"Showing record of {killer.name} killing {victim.name} as requested by {user}")
 
         if result[0][1] == 0:
             await text_channel.send(f"{killer.name} has never teamkilled {victim.name} \n\nprobably")
         elif result[0][1] == 1:
-            await text_channel.send(f"{killer.name} has teamkilled {victim.name} 1 time")
+            await text_channel.send(f"{killer.name} has teamkilled {victim.name} once")
         else:
             await text_channel.send(f"{killer.name} has teamkilled {victim.name} {result[0][1]} times")
 
 
 @client.event
 async def on_ready():
-    print('We have logged in as {0.user}'.format(client))
+    print(f"We have logged in as {client.user}")
 
 
 @client.event
 async def on_message(message):
+    # Don't parse messages sent by ourselves
     if message.author == client.user:
         return
 
@@ -158,10 +169,12 @@ async def on_message(message):
     command = check_message(message.content)
 
     if command is not None or "tk" in message.content:
+        # Prevents the bot joining the voice channel or requiring the requesting user to be in a voice channel
         if "tk" in message.content:
-            await tk_recorder(message.content, text_channel)
+            await tk_recorder(message.content, text_channel, user)
             await message.delete(delay=5)
         else:
+            # If the bot is not in a channel join the voice channel that the user who sent the command is in
             if not client.voice_clients:
                 vc = await connect(voice_channel, text_channel, message)
             else:
@@ -206,6 +219,7 @@ async def on_message(message):
                     command_queue.append(cmd)
                     await play_voice_line(vc)
 
+                # Needs to be changed to be similar to tk commands, i.e. doesn't require the user to be in a voice channel
                 elif command == "help":
                     if message.content == "disconnect":
                         await vc.disconnect()
@@ -215,10 +229,12 @@ async def on_message(message):
                         await dm(user, message.content)
 
                     await message.delete(delay=5)
-                    print(f"Help command requested by {user}")
+                    print(f"\"{message.content}\" command requested by {user}")
 
 
 
+# Connects the bot to the voice channel that the user who sent the command is in
+# If the user isn't in a voice channel a message is sent and nothing further happens
 async def connect(voice_channel, text_channel, message):
     if voice_channel is not None:
         vc = await voice_channel.channel.connect()
@@ -240,6 +256,7 @@ async def play_voice_line(vc):
             await asyncio.sleep(1)
 
 
+# Use https://cog-creators.github.io/discord-embed-sandbox/ to make nice embed messages
 async def help(text_channel):
     embed = discord.Embed(title="Mr Roboto Commands", description="⠀", color=0x0dffe7)
     embed.add_field(name="Age of Empires 2 Taunts", value="Command: aoe2help", inline=False)
@@ -248,6 +265,7 @@ async def help(text_channel):
     await text_channel.send(embed=embed)
 
 
+# Function to direct message the requesting user a list of avaiable commands
 async def dm(user, msg):
     help_requested = None
     for value in command_dict["help"]:
@@ -268,6 +286,7 @@ async def dm(user, msg):
 
 
 if __name__ == "__main__":
+    # Discord bot token stored as a system variable
     token = os.environ["discord_token"]
     refresh_command_dict()
     client.run(token)
