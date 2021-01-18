@@ -232,7 +232,7 @@ async def on_message(message):
 
                 # Needs to be changed to be similar to tk commands, i.e. doesn't require the user to be in a voice channel
                 elif command == "help":
-                    if message.content == "disconnect":
+                    if message.content.lower() == "disconnect":
                         await vc.disconnect()
                     elif message.content == "help":
                         await help(text_channel)
