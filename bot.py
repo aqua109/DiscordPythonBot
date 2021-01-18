@@ -77,6 +77,8 @@ async def tk_recorder(msg, text_channel, user):
         # @aidanigbo is read as <@!74004712172560384>
         # Find all users that match this pattern in the message
         users = re.findall("<@![0-9]+>", msg)
+
+        # If a user @'s a user that doesn't exist in that server an IndexError occurs
         try:
             killer = await parse_user(users[0])
             victim = await parse_user(users[1])
@@ -111,7 +113,12 @@ async def tk_recorder(msg, text_channel, user):
         # @aidanigbo is read as <@!74004712172560384>
         # Find all users that match this pattern in the message
         users = re.findall("<@![0-9]+>", msg)
-        killer = await parse_user(users[0])
+
+        try:
+            killer = await parse_user(users[0])
+        except IndexError:
+            return
+
         conn = sqlite3.connect("tk.db")
         c = conn.cursor()
         c.execute("SELECT killer, COUNT(killer) FROM tk_record WHERE killer == ?", (killer.name,))
@@ -132,9 +139,13 @@ async def tk_recorder(msg, text_channel, user):
         # @aidanigbo is read as <@!74004712172560384>
         # Find all users that match this pattern in the message
         users = re.findall("<@![0-9]+>", msg)
-        killer = await parse_user(users[0])
-        victim = await parse_user(users[1])
-        print(killer)
+
+        try:
+            killer = await parse_user(users[0])
+            victim = await parse_user(users[1])
+        except IndexError:
+            return
+
         conn = sqlite3.connect("tk.db")
         c = conn.cursor()
         c.execute("SELECT killer, COUNT(killer) FROM tk_record WHERE killer == ? AND victim == ?", (killer.name, victim.name))
