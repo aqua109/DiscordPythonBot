@@ -298,6 +298,6 @@ async def dm(user, msg):
 
 if __name__ == "__main__":
     # Discord bot token stored as a system variable
-    token = os.environ["discord_token"]
+    token = os.environ["DISCORD_TOKEN"]
     refresh_command_dict()
     client.run(token)
