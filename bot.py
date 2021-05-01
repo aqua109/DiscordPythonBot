@@ -31,8 +31,8 @@ class Command:
 def refresh_command_dict():
     conn = sqlite3.connect("sound_clips.db")
     c = conn.cursor()
-    command_dict.clear()
     for key, value in command_dict.items():
+        value.clear()
         table = clean_table_name(key)
         c.execute(f"SELECT command, flavour FROM {table}")
         for command, flavour in c.fetchall():
