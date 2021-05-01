@@ -31,6 +31,7 @@ class Command:
 def refresh_command_dict():
     conn = sqlite3.connect("sound_clips.db")
     c = conn.cursor()
+    command_dict.clear()
     for key, value in command_dict.items():
         table = clean_table_name(key)
         c.execute(f"SELECT command, flavour FROM {table}")
@@ -236,6 +237,8 @@ async def on_message(message):
                         await vc.disconnect()
                     elif message.content == "help":
                         await help(text_channel)
+                    elif message.content == "refresh":
+                        refresh_command_dict();
                     else:
                         await dm(user, message.content)
 
