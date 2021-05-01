@@ -193,13 +193,13 @@ async def on_message(message):
             if vc:
                 if command == "aoe2":
                     print(f"AoE2 command \"{message.content}\" requested by {user}")
-                    cmd = Command(voice_channel, text_channel, message, f"AoE2\\{message.content}")
+                    cmd = Command(voice_channel, text_channel, message, f"AoE2/{message.content}")
                     command_queue.append(cmd)
                     await play_voice_line(vc)
 
                 elif command == "quake":
                     print(f"Quake command \"{message.content}\" requested by {user}")
-                    cmd = Command(voice_channel, text_channel, message, f"Quake\\{message.content}")
+                    cmd = Command(voice_channel, text_channel, message, f"Quake/{message.content}")
                     command_queue.append(cmd)
                     await play_voice_line(vc)
 
@@ -226,7 +226,7 @@ async def on_message(message):
                             c.execute("INSERT INTO how_count (user, count) VALUES (?, ?)", (str(user), count))
                             conn.commit()
                         c.close()
-                    cmd = Command(voice_channel, text_channel, message, f"Misc\\{message.content}")
+                    cmd = Command(voice_channel, text_channel, message, f"Misc/{message.content}")
                     command_queue.append(cmd)
                     await play_voice_line(vc)
 
