@@ -263,7 +263,7 @@ async def connect(voice_channel, text_channel, message):
 async def play_voice_line(vc):
     while command_queue:
         try:
-            vc.play(discord.FFmpegPCMAudio(f"{command_queue[0].mp3_string}.mp3"), after=lambda e: print(f"Error: {e}") if e is not None else None)
+            vc.play(discord.FFmpegPCMAudio(f"{command_queue[0].mp3_string.lower()}.mp3"), after=lambda e: print(f"Error: {e}") if e is not None else None)
             await command_queue[0].message.delete(delay=5)
             command_queue.pop(0)
         except discord.errors.ClientException:
